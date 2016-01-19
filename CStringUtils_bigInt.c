@@ -298,6 +298,7 @@ string bigIntDecr(string a){
 }
 
 string *extendedEuclidean(string a, string b, string c){
+	printf("taking egcd(0x");printsint(a);printf(", 0x");printsint(b);printf(", 0x");printsint(c);printf(")\n");fflush(stdout);
 	int revflag = 0;
 	if(bigIntComp(a,b)==-1){
 		string temp = bigIntCopy(a);
@@ -308,7 +309,7 @@ string *extendedEuclidean(string a, string b, string c){
 	string *ret = calloc(2,sizeof(string));
 	string *qr = bigIntDivide(a,b);
 	string r[3] = {bigIntCopy(a),bigIntCopy(b),bigIntCopy(qr[1])};
-	string q = bigIntCopy(qr[0]);
+	string q = qr[0];
 	string s[3] = {charToS(0x01),charToS(0x00),charToS(0x01)};
 	string t[3] = {charToS(0x00),charToS(0x01),newBigInt(q.c,q.len,-q.sign)};
 	string tmpArr[3];
@@ -344,6 +345,7 @@ string *extendedEuclidean(string a, string b, string c){
 	ret[0] = bigIntMultiply(qr[0],s[1]);
 	ret[1] = bigIntMultiply(qr[0],t[1]);
 	while(bigIntComp(ret[0],charToS(0x00))==-1){
+		printf("adjusting egcd output.\n");fflush(stdout);
 		ret[0] = bigIntAdd(ret[0], bigIntAbs(b));
 		ret[1] = bigIntSubtract(ret[1],bigIntAbs(a));
 	}
@@ -367,17 +369,19 @@ string __modExpOdd(string a, string e, string n){
 	}
 	string nprime = extendedEuclidean(r,n,charToS(0x01))[1];
 	nprime.sign = 1;
-	//printf("nprime = ");printsint(nprime);PRINTNL;fflush(stdout);
+	printf("nprime = ");printsint(nprime);PRINTNL;fflush(stdout);
 	string abar = bigIntDivide(bigIntMultiply(a,r),n)[1];
-	//printf("abar = "); printsint(abar);PRINTNL;fflush(stdout);
+	printf("abar = "); printsint(abar);PRINTNL;fflush(stdout);
 	string xbar = bigIntDivide(r,n)[1];
-	//printf("xbar = "); printsint(xbar);PRINTNL;fflush(stdout);
+	printf("xbar = "); printsint(xbar);PRINTNL;fflush(stdout);
 	for(int i = ebits-1; i>=0; i--){
+		printf("i=%i     \r",i);fflush(stdout);
 		xbar = __monPro(xbar, xbar, n, nprime, rpow);
 		if(bigIntParity(stringRightShift(e,i))){
 			xbar = __monPro(abar, xbar, n, nprime, rpow);
 		}
 	}
+	PRINTNL;
 	string ret =  __monPro(xbar, charToS(0x01), n, nprime, rpow);
 	string x = __monPro(xbar, charToS(0x01), n, nprime, rpow);
 	printsint(x);PRINTNL;

@@ -9,12 +9,6 @@
 
 #include "CStringUtils.h"
 
-string __bigIntAdd(string a, string b);
-string __bigIntSubtract(string a, string b);
-string *__bigIntDivide(string a, string b);
-int __bigIntComp(string a, string b);
-
-
 string newString(char * c, int t){
 	string r;
 	int i;
@@ -51,7 +45,7 @@ void prints(string s){
 	}
 }
 
-void printsprint(string s){
+void printsprint(string s){ //print characters if they are printable, otherwise print a space.
 	for(int i=0; i<s.len; i++){
 		if(isprint(s.c[i])) printf("%c",s.c[i]);
 		else printf(" ");
@@ -98,7 +92,7 @@ string readLine(void){
 	return str;
 }
 
-string readInput(string end){
+string readInput(string end){ //read input from console, including newlines, until the delimeter is reached.
 	unsigned int len=128;
 	unsigned int i=0;
 	int endlen=end.len;
@@ -209,16 +203,6 @@ string base64Decode(string in){
 	return out;
 }
 
-int HammingDistance(string str1, string str2){
-	int i,d=0;
-	char c;
-	for(i=0; i<MIN(str1.len,str2.len); i++){
-		c=(str1.c[i]^str2.c[i]);
-		do{d+=c&0x01; c=c>>1; }while(c);
-	}
-	return d;
-}
-
 string base16Encode(string in){
 	string out=newString(NULL, in.len*2);
 	int i,j;
@@ -263,7 +247,17 @@ int isBase16(string str){
 	return 1;
 }
 
-string *blockString(string str, int bs){
+int HammingDistance(string str1, string str2){
+	int i,d=0;
+	char c;
+	for(i=0; i<MIN(str1.len,str2.len); i++){
+		c=(str1.c[i]^str2.c[i]);
+		do{d+=c&0x01; c=c>>1; }while(c);
+	}
+	return d;
+}
+
+string *blockString(string str, int bs){ //break str into blocks of size bs.
 	int num = numBlocks(str, bs);
 	string *blocks = (string *)malloc(sizeof(string)*(num+1));
 	int i;
@@ -280,11 +274,11 @@ string *blockString(string str, int bs){
 	return blocks;
 }
 
-int numBlocks(string str, int bs){
+int numBlocks(string str, int bs){ //compute number of blocks for blockString()
 	return str.len/bs + (str.len%bs? 1: 0);
 }
 
-string *invertBlocks(string str, int bs){
+string *invertBlocks(string str, int bs){ //transpose of blockString()
 	int numb=str.len/bs + ((str.len%bs)?1:0);
 	string *res = malloc(sizeof(string)*(bs));
 	int i,j;
@@ -301,7 +295,7 @@ string *invertBlocks(string str, int bs){
 	return res;
 }
 
-int blockRepeats(string str, int bs){
+int blockRepeats(string str, int bs){ //is there a repeating block? 1 if yes, 0 if no. 
 	string *blocks = blockString(str, bs);
 	int i, j;
 	int num=numBlocks(str, bs);
@@ -317,24 +311,6 @@ int blockRepeats(string str, int bs){
 	}
 
 	return 0;
-}
-
-string PKCS7PadString(string str, int bs){
-	int d = bs - str.len%bs;
-	int i;
-	string pad;
-	char finalblock[bs];
-
-	if(d == bs){
-		for(i=0; i<bs; i++) finalblock[i]=bs;
-		return stringCat(str, newString(finalblock, bs));
-	}
-
-	pad = newString(str.c, str.len+d);
-	for(i=str.len; i<pad.len; i++){
-		pad.c[i]=(char)d;
-	}
-	return pad;
 }
 
 string stringCat(string first, string second){
@@ -364,6 +340,24 @@ int stringCompN(string s1, string s2, int l){
 	if(s1.len<l || s2.len <l) return 0;
 	for(i=0; i<l; i++) if(s1.c[i]!=s2.c[i]) return 0;
 	return 1;
+}
+
+string PKCS7PadString(string str, int bs){
+	int d = bs - str.len%bs;
+	int i;
+	string pad;
+	char finalblock[bs];
+
+	if(d == bs){
+		for(i=0; i<bs; i++) finalblock[i]=bs;
+		return stringCat(str, newString(finalblock, bs));
+	}
+
+	pad = newString(str.c, str.len+d);
+	for(i=str.len; i<pad.len; i++){
+		pad.c[i]=(char)d;
+	}
+	return pad;
 }
 
 int validatePKCS7Padding(string str){
@@ -406,6 +400,7 @@ string randString(int len){
 	string r = newString(NULL,len);
 	int i;
 	for(i=0; i<len; i++) r.c[i]=(unsigned char)rand()%256;
+	r.sign = 1;
 	return r;
 }
 
@@ -441,12 +436,16 @@ string stringLeftShift(string word, int bits){
 	if(w.c[0]==0){
 		w = newString(&w.c[1],w.len-1);
 	}
+	w.sign = word.sign;
 	return w;
 }
 
 string stringRightShift(string word, int bits){
 	string w;
 	if(bits<0) return stringLeftShift(word, -bits);
+	if((bits >> 3) > word.len){
+		return charToS(0x00);
+	}	
 	w=newString(NULL, MAX(word.len,0));
 	int bitOffset = bits%8;
 	int byteOffset = bits/8;
@@ -460,6 +459,10 @@ string stringRightShift(string word, int bits){
 	}
 	while(w.c[0]==0 && w.len>0){
 		w = newString(&w.c[1],w.len-1);
+	}
+	w.sign = word.sign;
+	if(bigIntComp(w,charToS(0x00))==0){
+		w = charToS(0x00);
 	}
 	return w;
 }
@@ -476,219 +479,8 @@ string stringXOR(string a, string b){	//left-to-right XOR, repeating the shorter
 	return r;
 }
 
-string bigIntAdd(string a, string b){   //right-to-left addition
-	string R;
-	if(a.sign == -1 && b.sign == 1)	return __bigIntSubtract(b,a);
-	if(a.sign == 1 && b.sign == -1) return __bigIntSubtract(a,b);
-	if(a.sign == -1 && b.sign == -1){
-		R = __bigIntAdd(a,b);
-		R.sign = -1;
-		return R;
-	}
-	return __bigIntAdd(a,b);
-}
-
-string bigIntSubtract(string a, string b){ //right-to-left subtraction
-	string R;
-	if(a.sign == 1 && b.sign == -1)	return __bigIntAdd(a,b);
-	if(a.sign == -1 && b.sign == -1) return __bigIntSubtract(b,a);
-	if (a.sign == -1 && b.sign == 1){
-		R = __bigIntAdd(a,b);
-		R.sign = -1;
-		return R;
-	}
-
-	return __bigIntSubtract(a,b);
-}
-
-string __bigIntAdd(string a, string b){ //assumes a, b positive
-	/*
-	 * Assume both a and b are positive. Use stringadd(string, string) to deal with signs.
-	 * Adds two bigints stored as big endian raw bytes in a string object.
-	 * Just adds one byte at a time and carries the one if it needs to be carried.
-	 * The typecasting is a bit unfortunate but I don't think there's a way around it...
-	 */
-	string r = NULLSTRING;
-	int i,j, sum;
-	unsigned char c;
-	string shorter;
-	string longer;
-
-	shorter = LOCALSTRING((a.len<b.len ? a : b));
-	longer = LOCALSTRING((a.len<b.len ? b : a));
-
-	for(i=0; i<shorter.len; i++){
-
-		sum = (int)((unsigned char)shorter.c[shorter.len - i - 1])+(int)((unsigned char)longer.c[longer.len - i - 1]);
-		c = (unsigned char)(sum - (sum >= 256 ? 256 : 0));
-
-		r = stringCat(charToS(c),r);
-		j = longer.len - i - 1;
-		while( sum >= 256 ) {
-			if(--j == -1){
-				longer = stringCat(charToS(0x01), longer);
-				break;
-			}
-			else{
-				sum = 1 + (int)((unsigned char)longer.c[j]);
-				c = (unsigned char)(sum - (sum >= 256 ? 256 : 0));
-				longer.c[j]=c;
-			}
-		}
-	}
-	for(j=longer.len-i-1; j>=0; j--){
-		r = stringCat(charToS(longer.c[j]),r);
-	}
-
-	return r;
-}
-
-string __bigIntSubtract(string a, string b){ //assumes a,b positive
-	string r=NULLSTRING;
-	int i,j,diff;
-	unsigned char c;
-
-	string smaller;
-	string bigger;
-	if(__bigIntComp(a,b)==0) return charToS(0x00);
-
-	smaller = LOCALSTRING(((bigIntComp(a,b)==-1) ? a : b));
-	bigger  = LOCALSTRING(((bigIntComp(a,b)==-1) ? b : a));
-
-	for(i=0; i<smaller.len; i++){
-		diff = (int)((unsigned char)bigger.c[bigger.len - i - 1]) - (int)((unsigned char)smaller.c[smaller.len - i - 1]);
-		c = (unsigned char)(diff + (diff < 0 ? 256 : 0));
-		r = stringCat(charToS(c),r);
-		j = bigger.len - i -1;
-		while(diff < 0){
-			if (--j==-1){//this shouldn't ever happen, since we're doing bigger - smaller
-				fprintf(stderr, "Something went wrong with stringSubtract.");
-				exit(1);
-			}
-			else{
-				diff = (int)((unsigned char)bigger.c[j]) - 1;
-				c = (unsigned char)(diff + (diff < 0 ? 256 : 0));
-				bigger.c[j] = c;
-			}
-		}
-	}
-	for(j = bigger.len - i - 1; j>=0; j--){
-		r = stringCat(charToS(bigger.c[j]), r);
-	}
-	r = stripLeadingZeroes(r);
-	r.sign = bigIntComp(a,b);
-	return r;
-}
-
-string bigIntMultiply(string a, string b){
-	/*
-	 * Multiples two bigint strings.
-	 * It's just regular multiplication by hand, using the binary representation
-	*/
-	string r = charToS(0x00);
-	long int l = a.len*8;
-	long int i;
-	for(i=0; i<l; i++){
-		if(bigIntParity(stringRightShift(a,i))==1)
-			r = bigIntAdd(r,stringLeftShift(b,i));
-	}
-	r.sign = a.sign * b.sign;
-	return r;
-}
-
-int __bigIntComp(string a, string b){ // assumes a,b positive
-	int i;
-	string A = stripLeadingZeroes(a);
-	string B = stripLeadingZeroes(b);
-
-	if(A.len<B.len) return -1;
-	if(A.len>B.len) return 1;
-
-	for(i=0; i<a.len; i++){
-		if((unsigned char)a.c[i] > (unsigned char)b.c[i]) return 1;
-		if((unsigned char)a.c[i] < (unsigned char)b.c[i]) return -1;
-	}
-	return 0;
-}
-
-int    bigIntComp(string a, string b){ //compares a, b, as bigints, returning 1 if a>b, -1 if a<b, 0 if a==b.
-	if (a.sign == b.sign){
-		if(a.sign == 1){
-			return __bigIntComp(a,b);
-		}
-		if(a.sign==-1){
-			return __bigIntComp(b,a);
-		}
-	}
-	return a.sign; //return 1 if a is positive, -1 if a is negative...
-}
-
-string charToS(char c){
-	return newBigInt(&c, 1, c>=0?1:-1);
-}
-
-int bigIntParity(string a){
-	//Is the bigint string odd or even?
-	return a.c[a.len-1] & 0x1;
-}
-
-string stripLeadingZeroes(string a){
-	int i;
-	if(a.len==0) return a;
-	if(a.c[0]!=0) return a;
-	while(a.c[i++]==0 && i<a.len);
-	if(i==a.len) return NULLSTRING;
-	return newBigInt(&a.c[i],a.len-i,a.sign);
-}
-
-string *__bigIntDivide(string a, string b){ // assumes both are positive
-	string *qr = calloc(2,sizeof(string));
-	if(bigIntComp(a,b)==1){
-		qr[0] = charToS(0x00); qr[1] = LOCALSTRING(a);
-		return qr;
-	}
-	if(bigIntComp(a,b)==0){
-		qr[0] = charToS(0x01); qr[1] = charToS(0x00);
-		return qr;
-	}
-	if(bigIntComp(b,charToS(0x02))==0){
-		qr[0] = stringRightShift(a,1);
-		qr[1] = charToS(bigIntParity(a)&0xFF);
-		return qr;
-	}
-	qr = __bigIntDivide(bigIntSubtract(a,b),b);
-	qr[0] = bigIntIncr(qr[0]);
-	return qr;
-}
-
-string *bigIntDivide(string a, string b){
-	string *qr = __bigIntDivide(a,b);
-	if(a.sign == -1 && b.sign == -1){
-		bigIntIncr(qr[0]);
-		qr[1] = bigIntSubtract(b,qr[1]);
-	}
-	else if(a.sign == 1 && b.sign == -1){
-		qr[0].sign = -qr[0].sign;
-	}
-	else if(a.sign == -1 && b.sign == 1){
-		qr[0] = bigIntIncr(qr[0]);
-		qr[0].sign = -1;
-		qr[1] = bigIntSubtract(b,qr[1]);
-	}
-	return qr;
-}
-
-string bigIntIncr(string a){
-	return bigIntAdd(a,charToS(0x01));
-}
-
-string uint32ToString(uint32_t l){
-	string s = newString(NULL,4);
-	int i;
-	for(i=0; i<4; i++){
-		s.c[i] = (l >> (8*(3-i))) & 0xFF;
-	}
-	return s;
+string charToS(char c){ //turns char into string with len=1.
+	return newBigInt(&c, 1, 1);
 }
 
 uint32_t stringToUint32(string s){
@@ -700,3 +492,13 @@ uint32_t stringToUint32(string s){
 	}
 	return l;
 }
+
+string uint32ToString(uint32_t l){
+	string s = newString(NULL,4);
+	int i;
+	for(i=0; i<4; i++){
+		s.c[i] = (l >> (8*(3-i))) & 0xFF;
+	}
+	return s;
+}
+
