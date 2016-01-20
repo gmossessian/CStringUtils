@@ -32,7 +32,7 @@ int main(int argc, char **argv){
 	}
 	
 	string n;
-	if(0){
+	if(1){
 		string *gcd;
 		do{
 			a = randString(5);
@@ -40,12 +40,12 @@ int main(int argc, char **argv){
 			n = randString(3);
 			gcd = extendedEuclidean(a,b,n);
 		}while(gcd==NULL);
-		//printsint(a);printf("*");printsint(gcd[0]);printf("+");printsint(b);printf("*");printsint(gcd[1]);printf("=");printsint(n);PRINTNL;
+		printsint(a);printf("*");printsint(gcd[0]);printf("+");printsint(b);printf("*");printsint(gcd[1]);printf("=");printsint(n);PRINTNL;
 		if(bigIntComp(bigIntAdd(bigIntMultiply(a,gcd[0]),bigIntMultiply(b,gcd[1])),n)==0){
 			printf("EGCD working.\n");
 		}
 	
-		else printf("egcd returned null.\n");
+		else printf("EGCD failed!\n");
 		fflush(stdout);
 	}
 	

@@ -14,7 +14,7 @@ string newString(char * c, int t){
 	int i;
 	if(c!=NULL){
 		r.len = (t<=0)?strlen(c):t;
-		r.c=(char *)malloc(sizeof(char)*(r.len+1));
+		r.c=(char *)calloc((r.len+1), sizeof(char));
 		for(i=0; i<r.len; i++) r.c[i]=c[i];
 		//strncpy(r.c, c,r.len); /* size_t maxes out on long strings like base64 encoded ciphers of vanilla ice lyrics. */
 		r.c[r.len]='\0';
@@ -397,10 +397,8 @@ string stripChars(string in, string chars){
 }
 
 string randString(int len){
-	string r = newString(NULL,len);
-	int i;
-	for(i=0; i<len; i++) r.c[i]=(unsigned char)rand()%256;
-	r.sign = 1;
+	string r = newBigInt(NULL,len,1);
+	for(int i=0; i<len; i++) r.c[i]=(unsigned char)rand()%256;
 	return r;
 }
 
